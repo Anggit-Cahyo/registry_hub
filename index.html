@@ -7,7 +7,7 @@
   <style>
     body { font-family: Arial, sans-serif; text-align: center; margin: 20px; background-color: #f4f6f9; }
     #container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    #reader { width: 100%; border-radius: 8px; overflow: hidden; background: #fafafa; min-height: 250px; border: 1px dashed #ccc; }
+    #reader { width: 100%; border-radius: 8px; overflow: hidden; background: #fafafa; min-height: 250px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; }
     #status { margin-top: 20px; padding: 12px; font-weight: bold; border-radius: 5px; display: none; }
     .sukses { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .proses { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
@@ -21,17 +21,17 @@
   <p>Arahkan kamera ke QR Code / Barcode Undangan</p>
   
   <!-- Area Kamera -->
-  <div id="reader"></div>
+  <div id="reader">Memuat sistem kamera...</div>
   
   <!-- Notifikasi Status -->
   <div id="status"></div>
 </div>
 
-<!-- Menggunakan CDN alternatif cdnjs yang biasanya jauh lebih stabil diakses dari HP -->
-<script src="https://cloudflare.com"></script>
+<!-- MEMANGGIL FILE LOKAL REPO GITHUB ANDA SENDIRI -->
+<script src="html5-qrcode.min.js"></script>
 
 <script>
-  // PENTING: Ganti teks di bawah ini dengan URL Web App dari Google Apps Script Anda yang asli
+  // PENTING: Ganti dengan URL Web App dari Google Apps Script Anda yang asli
   const WEB_APP_URL = "URL_APP_SCRIPT_ANDA_DI_SINI"; 
   
   const statusDiv = document.getElementById('status');
@@ -68,34 +68,32 @@
     statusDiv.innerHTML = pesan;
   }
 
-  // Fungsi inisialisasi scanner yang lebih aman
   function jalankanScanner() {
-    // Cek apakah library html5-qrcode berhasil dimuat dari internet
     if (typeof Html5QrcodeScanner === 'undefined') {
-      tampilkanStatus("Gagal memuat sistem kamera. Periksa koneksi internet Anda atau coba buka dengan browser lain (Chrome/Safari).", "gagal");
+      document.getElementById('reader').innerHTML = "<div style='padding:20px; color:red;'>Gagal memuat file sistem kamera dari repositori Anda. Pastikan nama file 'html5-qrcode.min.js' sudah benar.</div>";
       return;
     }
 
     try {
+      document.getElementById('reader').innerHTML = ""; // Bersihkan teks pemuat
       const html5QrcodeScanner = new Html5QrcodeScanner(
         "reader", { 
           fps: 10, 
-          qrbox: { width: 250, height: 250 },
-          rememberLastUsedCamera: true
+          qrbox: { width: 250, height: 250 }
         },
         /* verbose= */ false
       );
       html5QrcodeScanner.render(onScanSuccess, function(error) {
-        // Abaikan error real-time scanning (ketika kamera mencari barcode namun belum ketemu)
+        // Log pencarian barcode diabaikan agar tidak lambat
       });
     } catch (err) {
-      tampilkanStatus("Error Scanner: " + err.message, "gagal");
+      tampilkanStatus("Error Inisialisasi: " + err.message, "gagal");
     }
   }
 
-  // Pastikan halaman web dan seluruh skrip luar selesai dimuat baru jalankan kamera
+  // Jalankan deteksi kamera setelah halaman sepenuhnya termuat
   window.onload = function() {
-    setTimeout(jalankanScanner, 500); // Diberi jeda 0.5 detik agar browser siap
+    setTimeout(jalankanScanner, 300);
   };
 </script>
 
