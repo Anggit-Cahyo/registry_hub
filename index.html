@@ -4,12 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Scanner Presensi Pernikahan Pak Saiful Anam</title>
-  <!-- Memuat pustaka scanner dari CDN resmi -->
-  <script src="https://unpkg.com"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; margin: 20px; background-color: #f4f6f9; }
     #container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    #reader { width: 100%; border-radius: 8px; overflow: hidden; }
+    #reader { width: 100%; border-radius: 8px; overflow: hidden; background: #fafafa; min-height: 250px; }
     #status { margin-top: 20px; padding: 12px; font-weight: bold; border-radius: 5px; display: none; }
     .sukses { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .proses { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
@@ -29,8 +27,10 @@
   <div id="status"></div>
 </div>
 
+<!-- Memuat skrip di bagian paling bawah agar elemen HTML siap terlebih dahulu -->
+<script src="https://unpkg.com"></script>
 <script>
-  // GANTI teks di bawah ini dengan URL Web App dari Google Apps Script Anda
+  // GANTI dengan URL Web App dari Google Apps Script Anda
   const WEB_APP_URL = "URL_APP_SCRIPT_ANDA_DI_SINI"; 
   
   const statusDiv = document.getElementById('status');
@@ -38,28 +38,21 @@
 
   function onScanSuccess(decodedText, decodedResult) {
     if (!isScanning) return; 
-    isScanning = false; // Kunci scanner agar tidak mengirim data berkali-kali
+    isScanning = false; 
 
     statusDiv.style.display = 'block';
     statusDiv.className = 'proses';
     statusDiv.innerHTML = "Memproses data: " + decodedText;
 
-    // Mengirim data ke Google Sheets via Fetch API
     fetch(WEB_APP_URL, {
       method: "POST",
-      mode: "no-cors", // Mengabaikan aturan CORS karena Apps Script tidak mendukung CORS bawaan penuh
-      headers: {
-        "Content-Type": "application/json"
-      },
+      mode: "no-cors", 
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ qrData: decodedText })
     })
     .then(() => {
-      // Karena menggunakan 'no-cors', kita tidak bisa membaca isi respon JSON secara langsung, 
-      // tetapi jika jalurnya sukses (tidak masuk ke catch), asumsi data berhasil terkirim.
       statusDiv.className = 'sukses';
       statusDiv.innerHTML = "Berhasil mencatat kehadiran: " + decodedText;
-      
-      // Buka kembali scanner setelah 2 detik
       setTimeout(() => {
         statusDiv.style.display = 'none';
         isScanning = true;
@@ -72,11 +65,20 @@
     });
   }
 
-  // Menjalankan scanner otomatis menggunakan kamera belakang HP
-  const html5QrcodeScanner = new Html5QrcodeScanner(
-    "reader", { fps: 10, qrbox: { width: 250, height: 250 } }
-  );
-  html5QrcodeScanner.render(onScanSuccess);
+  // Inisialisasi scanner dengan tombol pilihan jika otomatisasi diblokir browser
+  function jalankanScanner() {
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+      "reader", { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        rememberLastUsedCamera: true
+      }
+    );
+    html5QrcodeScanner.render(onScanSuccess);
+  }
+
+  // Memastikan library sudah termuat sempurna sebelum dijalankan
+  window.addEventListener('DOMContentLoaded', jalankanScanner);
 </script>
 
 </body>
