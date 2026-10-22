@@ -7,7 +7,7 @@
   <style>
     body { font-family: Arial, sans-serif; text-align: center; margin: 20px; background-color: #f4f6f9; }
     #container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    #reader { width: 100%; border-radius: 8px; overflow: hidden; background: #fafafa; min-height: 250px; }
+    #reader { width: 100%; border-radius: 8px; overflow: hidden; background: #fafafa; min-height: 250px; border: 1px dashed #ccc; }
     #status { margin-top: 20px; padding: 12px; font-weight: bold; border-radius: 5px; display: none; }
     .sukses { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .proses { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
@@ -27,10 +27,11 @@
   <div id="status"></div>
 </div>
 
-<!-- Memuat skrip di bagian paling bawah agar elemen HTML siap terlebih dahulu -->
-<script src="https://unpkg.com"></script>
+<!-- Menggunakan CDN alternatif cdnjs yang biasanya jauh lebih stabil diakses dari HP -->
+<script src="https://cloudflare.com"></script>
+
 <script>
-  // GANTI dengan URL Web App dari Google Apps Script Anda
+  // PENTING: Ganti teks di bawah ini dengan URL Web App dari Google Apps Script Anda yang asli
   const WEB_APP_URL = "URL_APP_SCRIPT_ANDA_DI_SINI"; 
   
   const statusDiv = document.getElementById('status');
@@ -40,9 +41,7 @@
     if (!isScanning) return; 
     isScanning = false; 
 
-    statusDiv.style.display = 'block';
-    statusDiv.className = 'proses';
-    statusDiv.innerHTML = "Memproses data: " + decodedText;
+    tampilkanStatus("Memproses data: " + decodedText, "proses");
 
     fetch(WEB_APP_URL, {
       method: "POST",
@@ -51,34 +50,53 @@
       body: JSON.stringify({ qrData: decodedText })
     })
     .then(() => {
-      statusDiv.className = 'sukses';
-      statusDiv.innerHTML = "Berhasil mencatat kehadiran: " + decodedText;
+      tampilkanStatus("Berhasil mencatat kehadiran: " + decodedText, "sukses");
       setTimeout(() => {
         statusDiv.style.display = 'none';
         isScanning = true;
-      }, 2000);
+      }, 2500);
     })
     .catch(error => {
-      statusDiv.className = 'gagal';
-      statusDiv.innerHTML = "Gagal mengirim data. Coba lagi.";
+      tampilkanStatus("Gagal mengirim ke Excel. Coba lagi.", "gagal");
       isScanning = true;
     });
   }
 
-  // Inisialisasi scanner dengan tombol pilihan jika otomatisasi diblokir browser
-  function jalankanScanner() {
-    const html5QrcodeScanner = new Html5QrcodeScanner(
-      "reader", { 
-        fps: 10, 
-        qrbox: { width: 250, height: 250 },
-        rememberLastUsedCamera: true
-      }
-    );
-    html5QrcodeScanner.render(onScanSuccess);
+  function tampilkanStatus(pesan, jenis) {
+    statusDiv.style.display = 'block';
+    statusDiv.className = jenis;
+    statusDiv.innerHTML = pesan;
   }
 
-  // Memastikan library sudah termuat sempurna sebelum dijalankan
-  window.addEventListener('DOMContentLoaded', jalankanScanner);
+  // Fungsi inisialisasi scanner yang lebih aman
+  function jalankanScanner() {
+    // Cek apakah library html5-qrcode berhasil dimuat dari internet
+    if (typeof Html5QrcodeScanner === 'undefined') {
+      tampilkanStatus("Gagal memuat sistem kamera. Periksa koneksi internet Anda atau coba buka dengan browser lain (Chrome/Safari).", "gagal");
+      return;
+    }
+
+    try {
+      const html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", { 
+          fps: 10, 
+          qrbox: { width: 250, height: 250 },
+          rememberLastUsedCamera: true
+        },
+        /* verbose= */ false
+      );
+      html5QrcodeScanner.render(onScanSuccess, function(error) {
+        // Abaikan error real-time scanning (ketika kamera mencari barcode namun belum ketemu)
+      });
+    } catch (err) {
+      tampilkanStatus("Error Scanner: " + err.message, "gagal");
+    }
+  }
+
+  // Pastikan halaman web dan seluruh skrip luar selesai dimuat baru jalankan kamera
+  window.onload = function() {
+    setTimeout(jalankanScanner, 500); // Diberi jeda 0.5 detik agar browser siap
+  };
 </script>
 
 </body>
